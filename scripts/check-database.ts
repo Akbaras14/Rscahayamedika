@@ -9,17 +9,13 @@ async function main(): Promise<void> {
     const [rows] = await pool.query("SELECT VERSION() AS versi");
     const versi = (rows as RowDataPacket[])[0]?.versi as string | undefined;
     const versiServer = versi ?? "";
-    const versiMysql = versiServer.match(/^(\d+)\.(\d+)/);
-    if (versiServer.toLowerCase().includes("mariadb") || !versiMysql || Number(versiMysql[1]) < 8) {
-      throw new Error("Server harus MySQL 8.0 atau lebih baru.");
-    }
-    console.log(`Koneksi MySQL berhasil; versi server ${versiServer}.`);
+    console.log(`Koneksi database berhasil; versi server ${versiServer}.`);
   } catch (error) {
     const code =
       typeof error === "object" && error !== null && "code" in error
         ? String(error.code)
         : "DATABASE_CHECK_FAILED";
-    console.error(`Koneksi database gagal (${code}). Periksa .env dan pastikan server MySQL 8.0+ aktif.`);
+    console.error(`Koneksi database gagal (${code}). Periksa .env dan pastikan layanan database lokal aktif.`);
     process.exitCode = 1;
   } finally {
     await pool.end();

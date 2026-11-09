@@ -2,7 +2,7 @@
 
 ## Runtime
 
-UI/API berada pada 127.0.0.1:3100, dengan gateway dalam proses yang sama. MySQL khusus komputer pengembangan berada pada 127.0.0.1:3310. Kredensial dan datadir lokal diabaikan Git. Tidak ada konfigurasi deployment atau ketergantungan cloud untuk menjalankan aplikasi.
+UI/API berada pada 127.0.0.1:3100, dengan gateway dalam proses yang sama. Database menggunakan layanan MariaDB yang sudah tersedia pada 127.0.0.1:3307. Kredensial, salinan data, dan cadangan lokal diabaikan Git. Tidak ada konfigurasi deployment atau ketergantungan cloud untuk menjalankan aplikasi.
 
 ## Pemetaan BRD
 
@@ -46,3 +46,7 @@ Aturan sistem tidak menggantikan penilaian tenaga berwenang. BRD versi 4.0 telah
 ## Lingkup bukti pemeriksaan
 
 Sebanyak 92 tes otomatis lulus, mencakup modul peran, aturan keselamatan dan alur lintas unit dari pesanan awal sampai konsumsi. Alur lengkap juga dijalankan pada MySQL lokal, termasuk perubahan NPO setelah produksi. Simulasi 500 pesanan memeriksa kalkulasi bahan; hasil tersebut bukan uji beban 500 pengguna bersamaan. Persetujuan BRD telah dikonfirmasi pemilik proyek.
+
+## Pemindahan ke port 3307
+
+Tujuh skema, 59 tabel, dan 570 baris dipindahkan dari instance sebelumnya serta dicocokkan isinya. Cadangan data dan konfigurasi sebelumnya tersimpan di .local. Kolasi migrasi menggunakan utf8mb4_unicode_ci agar dapat diterapkan pada MySQL maupun MariaDB. Akses aplikasi memakai akun khusus proyek dengan hak pada tujuh skema tersebut.

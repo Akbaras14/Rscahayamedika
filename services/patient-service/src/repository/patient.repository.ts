@@ -2,7 +2,7 @@ import { parameterMysql, waktuMysql } from "../../../../packages/database/src/my
 /**
  * @fileoverview Lapisan repositori untuk `patient-service` (Tahap 2 — Peran Petugas Pendaftaran).
  * Mengimplementasikan `PatientRepository` dengan dua adapter:
- * 1. `MySqlPatientRepository` — Query MySQL 8.0+ terparameterisasi pada skema `manajemen_gizi_pasien_patient`.
+ * 1. `MySqlPatientRepository` — Query MySQL/MariaDB terparameterisasi pada skema `manajemen_gizi_pasien_patient`.
  * 2. `InMemoryPatientRepository` — Penyimpanan deterministik untuk pengujian otomatis dan pengembangan lokal.
  *
  * Acuan aturan bisnis: AB-001 (identitas unik), AB-020 (verifikasi dua pengenal), AB-030 (riwayat koreksi), AB-034 (jejak telusur).
@@ -686,7 +686,7 @@ function petakanBarisKunjungan(
 }
 
 /**
- * Implementasi repositori MySQL 8.0+ terparameterisasi untuk `patient-service`.
+ * Implementasi repositori MySQL/MariaDB terparameterisasi untuk `patient-service`.
  */
 export class MySqlPatientRepository implements PatientRepository {
   private readonly pool: Pool;

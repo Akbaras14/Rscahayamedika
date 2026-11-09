@@ -128,7 +128,7 @@ export interface IdentityRepository {
 }
 
 /**
- * Implementasi `IdentityRepository` menggunakan MySQL 8.0+ (`mysql2/promise`)
+ * Implementasi `IdentityRepository` menggunakan MySQL/MariaDB (`mysql2/promise`)
  * dengan query terparameterisasi dan transaksi atomik.
  */
 export class MySqlIdentityRepository implements IdentityRepository {

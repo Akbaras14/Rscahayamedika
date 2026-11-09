@@ -40,7 +40,7 @@ async function migrasikanDomain(
   });
   try {
     await admin.query(
-      `CREATE DATABASE IF NOT EXISTS \`${namaDatabase}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
+      `CREATE DATABASE IF NOT EXISTS \`${namaDatabase}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
     );
   } finally {
     await admin.end();

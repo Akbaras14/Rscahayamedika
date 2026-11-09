@@ -1,7 +1,7 @@
 -- =============================================================================
 -- MIGRASI 001 — TAHAP 10: LAYANAN PENGAWASAN MUTU & AUDIT INSIDEN GIZI
 -- Domain: incident-audit-service (Kepala Instalasi Gizi)
--- Standar: Forward-only DDL, InnoDB, utf8mb4_0900_ai_ci, Tanpa Penghapusan Destruktif
+-- Standar: Forward-only DDL, InnoDB, utf8mb4_unicode_ci, Tanpa Penghapusan Destruktif
 -- Aturan Bisnis: AB-028, AB-029, AB-030, AB-032, AB-033, BRD Bab X, XI, XVI
 -- =============================================================================
 
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS `laporan_insiden_keselamatan_gizi` (
   KEY `idx_insiden_status` (`status_insiden`),
   KEY `idx_insiden_derajat` (`derajat_keparahan`),
   KEY `idx_insiden_tanggal` (`tanggal_kejadian`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `investigasi_insiden_gizi` (
   `id` VARCHAR(64) NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS `investigasi_insiden_gizi` (
   UNIQUE KEY `uk_investigasi_insiden` (`insiden_id`),
   KEY `idx_investigasi_insiden` (`insiden_id`),
   CONSTRAINT `fk_investigasi_insiden` FOREIGN KEY (`insiden_id`) REFERENCES `laporan_insiden_keselamatan_gizi` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `tindakan_perbaikan_insiden` (
   `id` VARCHAR(64) NOT NULL,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `tindakan_perbaikan_insiden` (
   PRIMARY KEY (`id`),
   KEY `idx_tindakan_insiden` (`insiden_id`),
   CONSTRAINT `fk_tindakan_insiden` FOREIGN KEY (`insiden_id`) REFERENCES `laporan_insiden_keselamatan_gizi` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `evaluasi_mutu_dan_sisa_makanan` (
   `id` VARCHAR(64) NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `evaluasi_mutu_dan_sisa_makanan` (
   PRIMARY KEY (`id`),
   KEY `idx_evaluasi_tanggal` (`tanggal_evaluasi`),
   KEY `idx_evaluasi_bangsal` (`bangsal_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `rekonsiliasi_downtime_pelayanan` (
   `id` VARCHAR(64) NOT NULL,
@@ -104,4 +104,4 @@ CREATE TABLE IF NOT EXISTS `rekonsiliasi_downtime_pelayanan` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_nomor_rekonsiliasi` (`nomor_rekonsiliasi`),
   KEY `idx_rekonsiliasi_status` (`status_rekonsiliasi`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

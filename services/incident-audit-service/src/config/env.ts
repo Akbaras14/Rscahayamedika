@@ -26,7 +26,7 @@ export function muatKonfigurasiIncident(
     INCIDENT_SERVICE_HOST: sumber.INCIDENT_SERVICE_HOST ?? "127.0.0.1",
     INCIDENT_SERVICE_PORT: Number(sumber.INCIDENT_SERVICE_PORT ?? 4007),
     DB_HOST: sumber.DB_HOST ?? "127.0.0.1",
-    DB_PORT: Number(sumber.DB_PORT ?? 3306),
+    DB_PORT: Number(sumber.DB_PORT ?? 3307),
     DB_USER: sumber.DB_USER ?? "root",
     DB_PASSWORD: sumber.DB_PASSWORD,
     DB_DATABASE_INCIDENT:

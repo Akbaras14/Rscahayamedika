@@ -131,7 +131,7 @@ export async function jalankanMigrasiIdentity(env: IdentityServiceEnv): Promise<
   const poolAdmin = buatPoolDatabaseIdentity(env, false);
   try {
     await poolAdmin.query(
-      `CREATE DATABASE IF NOT EXISTS \`${env.DB_NAME_IDENTITY}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
+      `CREATE DATABASE IF NOT EXISTS \`${env.DB_NAME_IDENTITY}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
     );
   } finally {
     await poolAdmin.end();

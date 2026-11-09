@@ -19,7 +19,7 @@ async function belumAda(pool: Pool, table: string, id: string): Promise<boolean>
 
 /** Seed sintetis eksplisit untuk demonstrasi lokal; tidak memperbarui rekaman yang sudah ada. */
 export async function jalankanSeedMasterLokal(): Promise<void> {
-  const config = { host: process.env.DB_HOST ?? "127.0.0.1", port: Number(process.env.DB_PORT ?? 3306), user: process.env.DB_USER ?? "hpnms_app_user", password: process.env.DB_PASSWORD ?? "", timezone: "Z", dateStrings: true, connectionLimit: 3 };
+  const config = { host: process.env.DB_HOST ?? "127.0.0.1", port: Number(process.env.DB_PORT ?? 3307), user: process.env.DB_USER ?? "hpnms_app_user", password: process.env.DB_PASSWORD ?? "", timezone: "Z", dateStrings: true, connectionLimit: 3 };
   const patient = mysql.createPool({ ...config, database: process.env.DB_NAME_PATIENT ?? "manajemen_gizi_pasien_patient" });
   const clinical = mysql.createPool({ ...config, database: process.env.DB_DATABASE_CLINICAL ?? "manajemen_gizi_pasien_clinical" });
   const inventory = mysql.createPool({ ...config, database: process.env.DB_DATABASE_INVENTORY ?? "manajemen_gizi_pasien_inventory" });

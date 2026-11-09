@@ -12,7 +12,7 @@ const EnvSchema = z.object({
   IDENTITY_SERVICE_HOST: z.string().min(1).default("127.0.0.1"),
   IDENTITY_SERVICE_PORT: z.coerce.number().int().min(1).max(65535).default(4001),
   DB_HOST: z.string().min(1).default("127.0.0.1"),
-  DB_PORT: z.coerce.number().int().min(1).max(65535).default(3306),
+  DB_PORT: z.coerce.number().int().min(1).max(65535).default(3307),
   DB_USER: z.string().min(1).default("hpnms_app_user"),
   DB_PASSWORD: z.string().default(""),
   DB_NAME_IDENTITY: z

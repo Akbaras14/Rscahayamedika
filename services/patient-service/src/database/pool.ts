@@ -1,5 +1,5 @@
 /**
- * @fileoverview Pengelola connection pool MySQL 8.0+ (`mysql2/promise`), transaksi pendek,
+ * @fileoverview Pengelola connection pool MySQL/MariaDB (`mysql2/promise`), transaksi pendek,
  * dan pelaksana migrasi skema `manajemen_gizi_pasien_patient` untuk `patient-service`.
  * Mengikuti aturan TECHSTACK.md Bagian 2 & 8.3 (isolasi skema database per service, parameterized query).
  */

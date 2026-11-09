@@ -1,18 +1,14 @@
 # HPNMS - Manajemen Asupan Gizi Pasien Rumah Sakit
 
-Aplikasi lokal berdasarkan [BRD versi 4.0](agent/brd.md), dengan ruang kerja untuk 10 peran. UI dan API berjalan dalam satu proses Next.js; data tersimpan di tujuh skema MySQL.
+Aplikasi lokal berdasarkan [BRD versi 4.0](agent/brd.md), dengan ruang kerja untuk 10 peran. UI dan API berjalan dalam satu proses Next.js; data tersimpan di tujuh skema database MySQL/MariaDB.
 
 ## Menjalankan di komputer ini
 
-Kebutuhan: Node.js 22+ dan MySQL 8+. MariaDB tidak didukung.
+Kebutuhan: Node.js 22+ dan layanan database MySQL/MariaDB lokal. Pemeriksaan koneksi tidak membatasi nomor versi server.
 
-Konfigurasi komputer ini tersimpan di .env, menggunakan MySQL khusus proyek pada 127.0.0.1:3310. Kata sandi akun aplikasi ada pada **HPNMS_SEED_PASSWORD**. Berkas .env dan data .local diabaikan Git.
+Konfigurasi komputer ini tersimpan di .env, menggunakan layanan database yang sudah tersedia pada 127.0.0.1:3307. Kata sandi akun aplikasi ada pada **HPNMS_SEED_PASSWORD**. Berkas .env dan data .local diabaikan Git.
 
-Jika MySQL khusus proyek belum berjalan, buka terminal pertama:
-
-    npm run local:database
-
-Pada terminal kedua:
+Pastikan layanan database port 3307 aktif, lalu jalankan:
 
     npm run db:check
     npm run db:migrate
@@ -29,11 +25,11 @@ Untuk menjalankan hasil build secara lokal:
 
 1. Jalankan npm install.
 2. Salin .env.example menjadi .env.
-3. Isi koneksi MySQL lokal, rahasia sesi acak minimal 32 karakter, dan HPNMS_SEED_PASSWORD unik untuk membuat akun serta data sintetis awal.
+3. Isi koneksi database lokal, rahasia sesi acak minimal 32 karakter, dan HPNMS_SEED_PASSWORD unik untuk membuat akun serta data sintetis awal.
 4. Akun database perlu hak membuat dan memigrasikan tujuh skema yang tercantum di .env.
 5. Jalankan npm run db:check, npm run db:migrate, lalu npm run dev.
 
-Perintah local:database hanya untuk datadir MySQL khusus proyek yang sudah diinisialisasi. Jika menggunakan service MySQL Windows, jalankan service tersebut dan sesuaikan koneksi .env.
+Database port 3307 dikelola melalui layanan database yang sudah terpasang di komputer. Perintah local:database hanya opsional untuk instance MySQL terpisah dengan datadir yang sudah diinisialisasi; konfigurasi tersebut tidak dipakai pada komputer ini.
 
 ## Akun dan ruang kerja
 

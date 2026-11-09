@@ -12,7 +12,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import { Dialog } from "radix-ui";
+import React, { useEffect, useRef, useState } from "react";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -97,6 +98,12 @@ export function HeadNutritionWorkspace() {
   // Modal Penutupan Insiden
   const [modalTutupInsidenBuka, setModalTutupInsidenBuka] = useState<boolean>(false);
   const [catatanPenutupanInput, setCatatanPenutupanInput] = useState<string>("");
+  const fokusSebelumPenutupan = useRef<HTMLElement | null>(null);
+  const [tindakanPenutupan, setTindakanPenutupan] = useState<ItemTindakanKoreksiDto[]>([]);
+  const [buktiTindakan, setBuktiTindakan] = useState<Record<string, string>>({});
+  const [memuatTindakan, setMemuatTindakan] = useState(false);
+  const [galatTindakan, setGalatTindakan] = useState<string | null>(null);
+  const [verifikasiAktif, setVerifikasiAktif] = useState<string | null>(null);
   const [sedangTutupInsiden, setSedangTutupInsiden] = useState<boolean>(false);
 
   // Modal Evaluasi Mutu
@@ -251,10 +258,30 @@ export function HeadNutritionWorkspace() {
   };
 
   // Handler: Penutupan Insiden Sah (Closed Loop)
-  const bukaModalTutupInsiden = (insiden: ItemLaporanInsidenKeselamatanDto) => {
+  const bukaModalTutupInsiden = async (insiden: ItemLaporanInsidenKeselamatanDto) => {
+    fokusSebelumPenutupan.current = document.activeElement as HTMLElement;
     setInsidenTerpilih(insiden);
     setCatatanPenutupanInput("");
+    setTindakanPenutupan([]); setBuktiTindakan({}); setGalatTindakan(null); setMemuatTindakan(true);
     setModalTutupInsidenBuka(true);
+    try {
+      const res = await fetch(`/api/v1/incidents/reports/${insiden.id}`, { cache: "no-store" });
+      const json = await res.json() as ResponsApi<{ daftarTindakan: ItemTindakanKoreksiDto[] }>;
+      if (!json.sukses) throw new Error(json.galat.pesan);
+      setTindakanPenutupan(json.data.daftarTindakan);
+    } catch (error) { setGalatTindakan(error instanceof Error ? error.message : "Gagal memuat tindakan koreksi."); }
+    finally { setMemuatTindakan(false); }
+  };
+  const verifikasiTindakan = async (id: string) => {
+    if (!insidenTerpilih) return;
+    setVerifikasiAktif(id); setGalatTindakan(null);
+    try {
+      const res = await fetch(`/api/v1/incidents/reports/${insidenTerpilih.id}/actions/${id}/verify`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ buktiPenyelesaian: buktiTindakan[id] ?? "" }) });
+      const json = await res.json() as ResponsApi<ItemTindakanKoreksiDto>;
+      if (!json.sukses) throw new Error(json.galat.pesan);
+      setTindakanPenutupan((items) => items.map((item) => item.id === id ? json.data : item));
+    } catch (error) { setGalatTindakan(error instanceof Error ? error.message : "Verifikasi gagal."); }
+    finally { setVerifikasiAktif(null); }
   };
 
   const tanganiTutupInsiden = async (e: React.FormEvent) => {
@@ -769,7 +796,7 @@ export function HeadNutritionWorkspace() {
                     </div>
 
                     {/* AKSI KEPALA INSTALASI */}
-                    <div className="flex items-center justify-end gap-2 pt-3 border-t mt-3">
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t mt-3">
                       {insiden.statusInsiden !== "selesai_ditutup" && (
                         <>
                           <Button
@@ -965,7 +992,7 @@ export function HeadNutritionWorkspace() {
         {/* MODAL 1: INVESTIGASI RCA */}
         {modalInvestigasiBuka && insidenTerpilih && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-background border rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="bg-background border rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b pb-3">
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <Search className="w-5 h-5 text-primary" />
@@ -1038,7 +1065,7 @@ export function HeadNutritionWorkspace() {
         {/* MODAL 2: TETAPKAN TINDAKAN PERBAIKAN */}
         {modalTindakanBuka && insidenTerpilih && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-background border rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="bg-background border rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b pb-3">
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <Check className="w-5 h-5 text-primary" />
@@ -1104,31 +1131,50 @@ export function HeadNutritionWorkspace() {
 
         {/* MODAL 3: PENUTUPAN RESMI INSIDEN (CLOSED LOOP) */}
         {modalTutupInsidenBuka && insidenTerpilih && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-background border rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4">
+          <Dialog.Root open={modalTutupInsidenBuka} onOpenChange={setModalTutupInsidenBuka}>
+            <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+            <Dialog.Content onCloseAutoFocus={(event) => { event.preventDefault(); fokusSebelumPenutupan.current?.focus(); }} className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 max-h-[90vh] overflow-y-auto rounded-xl border bg-background p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b pb-3">
-                <h3 className="text-base font-bold flex items-center gap-2">
+                <Dialog.Title className="text-base font-bold flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   Penutupan Sah Insiden: {insidenTerpilih.nomorInsiden}
-                </h3>
+                </Dialog.Title>
                 <button
                   type="button"
                   onClick={() => setModalTutupInsidenBuka(false)}
+                  aria-label="Tutup dialog penutupan insiden"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900 text-xs">
+              <Dialog.Description className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900 text-xs">
                 <span className="font-bold block mb-1">Syarat Closed-Loop (AB-029):</span>
                 Penutupan resmi menegaskan bahwa akar masalah telah diinvestigasi dan seluruh rencana tindakan perbaikan telah dievaluasi efektivitasnya.
-              </div>
+              </Dialog.Description>
+
+                            <section aria-label="Verifikasi tindakan koreksi" className="space-y-3 text-xs">
+                <h4 className="font-semibold">Penyelesaian tindakan koreksi</h4>
+                {memuatTindakan ? <p>Memuat tindakan...</p> : !tindakanPenutupan.length ? <p>Tetapkan rencana tindakan sebelum penutupan.</p> : null}
+                {galatTindakan ? <p role="alert" className="text-red-700">{galatTindakan}</p> : null}
+                {tindakanPenutupan.map((item) => <div key={item.id} className="space-y-2 rounded-lg border p-3">
+                  <p className="font-medium">{item.deskripsiTindakan}</p>
+                  <p>Penanggung jawab: {item.penanggungJawabNama}</p>
+                  {item.statusTindakan === "selesai_efektif" ? <p className="whitespace-pre-wrap text-emerald-700">Selesai terverifikasi: {item.buktiPenyelesaian}</p> : <>
+                    <label htmlFor={`bukti-${item.id}`} className="block font-medium">Bukti pelaksanaan dan efektivitas</label>
+                    <textarea id={`bukti-${item.id}`} className="w-full rounded-md border p-2" minLength={10} maxLength={5000} value={buktiTindakan[item.id] ?? ""} onChange={(event) => setBuktiTindakan((values) => ({ ...values, [item.id]: event.target.value }))} />
+                    <Button type="button" disabled={verifikasiAktif !== null || (buktiTindakan[item.id]?.trim().length ?? 0) < 10} onClick={() => void verifikasiTindakan(item.id)}>{verifikasiAktif === item.id ? "Memverifikasi..." : "Verifikasi Selesai"}</Button>
+                  </>}
+                </div>)}
+              </section>
 
               <form onSubmit={tanganiTutupInsiden} className="space-y-4 text-xs">
                 <div className="space-y-1">
-                  <label className="font-semibold block">Catatan Verifikasi &amp; Hasil Evaluasi Akhir *</label>
+                  <label htmlFor="catatan-penutupan" className="font-semibold block">Catatan Verifikasi &amp; Hasil Evaluasi Akhir *</label>
                   <textarea
+                    id="catatan-penutupan"
                     rows={4}
                     value={catatanPenutupanInput}
                     onChange={(e) => setCatatanPenutupanInput(e.target.value)}
@@ -1150,20 +1196,21 @@ export function HeadNutritionWorkspace() {
                   <Button
                     type="submit"
                     className="bg-emerald-700 hover:bg-emerald-800 text-white"
-                    disabled={sedangTutupInsiden}
+                    disabled={sedangTutupInsiden || memuatTindakan || !!galatTindakan || !tindakanPenutupan.length || tindakanPenutupan.some((item) => item.statusTindakan !== "selesai_efektif")}
                   >
                     {sedangTutupInsiden ? "Menutup Insiden..." : "Tutup Insiden Secara Sah"}
                   </Button>
                 </div>
               </form>
-            </div>
-          </div>
+            </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
         )}
 
         {/* MODAL 4: EVALUASI MUTU BANGSAL */}
         {modalEvaluasiBuka && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-background border rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="bg-background border rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b pb-3">
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <LineChart className="w-5 h-5 text-primary" />
@@ -1278,7 +1325,7 @@ export function HeadNutritionWorkspace() {
         {/* MODAL 5: PENGAJUAN DOWNTIME */}
         {modalDowntimeBuka && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-background border rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="bg-background border rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b pb-3">
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <History className="w-5 h-5 text-primary" />

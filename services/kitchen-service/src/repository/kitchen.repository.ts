@@ -4,7 +4,7 @@ import { parameterMysql, waktuMysql } from "../../../../packages/database/src/my
  * Menyediakan implementasi InMemory (dengan seed) dan implementasi MySQL terparameterisasi.
  */
 
-import type { Pool, RowDataPacket } from "mysql2/promise";
+import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import type {
   SesiMakanDapur,
   StatusBatchProduksi,
@@ -27,6 +27,7 @@ import type {
 } from "../model/kitchen.model.ts";
 
 export interface KitchenRepository {
+  transaksi?<T>(kerja: (repo: KitchenRepository) => Promise<T>): Promise<T>;
   // Rencana Produksi H-1
   hitungNomorRencanaBerikutnya(): Promise<string>;
   simpanRencanaProduksi(rencana: EntitasRencanaProduksi): Promise<EntitasRencanaProduksi>;
@@ -323,10 +324,24 @@ export class InMemoryKitchenRepository implements KitchenRepository {
 type NilaiParamSql = string | number | boolean | null;
 
 export class MySqlKitchenRepository implements KitchenRepository {
-  private readonly pool: Pool;
+  private readonly pool: Pool | PoolConnection;
 
-  public constructor(pool: Pool) {
+  public constructor(pool: Pool | PoolConnection) {
     this.pool = pool;
+  }
+
+  public async transaksi<T>(kerja: (repo: KitchenRepository) => Promise<T>): Promise<T> {
+    if (!("getConnection" in this.pool)) return kerja(this);
+    const conn = await this.pool.getConnection();
+    try {
+      const [rows] = await conn.query<RowDataPacket[]>("SELECT GET_LOCK(CONCAT(DATABASE(), ':kitchen'), 10) AS acquired");
+      if (Number(rows[0]?.acquired) !== 1) throw new Error("Operasi sedang diproses. Silakan coba kembali.");
+      await conn.beginTransaction();
+      const result = await kerja(new MySqlKitchenRepository(conn));
+      await conn.commit();
+      return result;
+    } catch (error) { await conn.rollback().catch(() => undefined); throw error; }
+    finally { await conn.query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), ':kitchen'))").catch(() => undefined); conn.release(); }
   }
 
   public async hitungNomorRencanaBerikutnya(): Promise<string> {

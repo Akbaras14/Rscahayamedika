@@ -45,7 +45,9 @@ Aturan sistem tidak menggantikan penilaian tenaga berwenang. BRD versi 4.0 telah
 
 ## Lingkup bukti pemeriksaan
 
-Sebanyak 92 tes otomatis lulus, mencakup modul peran, aturan keselamatan dan alur lintas unit dari pesanan awal sampai konsumsi. Alur lengkap juga dijalankan pada MySQL lokal, termasuk perubahan NPO setelah produksi. Simulasi 500 pesanan memeriksa kalkulasi bahan; hasil tersebut bukan uji beban 500 pengguna bersamaan. Persetujuan BRD telah dikonfirmasi pemilik proyek.
+Sebanyak 103 tes otomatis lulus, mencakup modul peran, aturan keselamatan dan alur lintas unit dari pesanan awal sampai konsumsi. Alur lengkap juga dijalankan pada MariaDB port 3307 dengan skema audit terpisah, termasuk perubahan NPO setelah produksi, transaksi, konflik penyerahan dan verifikasi tindakan koreksi. Simulasi 500 pesanan memeriksa kalkulasi bahan; hasil tersebut bukan uji beban 500 pengguna bersamaan. Persetujuan BRD telah dikonfirmasi pemilik proyek.
+
+Lihat [laporan audit final](AUDIT_FINAL.md) untuk temuan, perbaikan, pengujian UI seluruh role dan batas pemeriksaan.
 
 ## Pemindahan ke port 3307
 

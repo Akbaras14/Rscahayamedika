@@ -243,6 +243,8 @@ describe("Tahap 10 — Peran Kepala Instalasi Gizi (Pengawasan Mutu, Insiden Clo
   it("8. menutup resmi insiden keselamatan pasien gizi dengan verifikasi closed-loop (AB-029, AB-030)", async () => {
     const { app, cookie } = await loginPengguna("kepala.gizi");
 
+    const verifikasi = await app.inject({ method: "POST", url: "/v1/incidents/reports/ins-001/actions/act-001/verify", headers: { cookie }, payload: { buktiPenyelesaian: "Briefing dan pemeriksaan ulang sudah terlaksana, bukti tercatat." } });
+    assert.equal(verifikasi.statusCode, 200);
     const resTutup = await app.inject({
       method: "POST",
       url: "/v1/incidents/reports/ins-001/close",

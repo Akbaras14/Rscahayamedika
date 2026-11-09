@@ -125,18 +125,13 @@ export function pasangMiddlewareKeamanan(app: FastifyInstance): void {
       return;
     }
 
-    const pesanErrorMentah =
-      error instanceof Error ? error.message : "Galat internal tidak dikenal";
     request.log.error(
       {
         kodeLaporan,
         correlationId,
         rute: request.url,
         metode: request.method,
-        pesanInternalTersanitasi: pesanErrorMentah.replace(
-          /(password|token|secret)=([^&\s]+)/gi,
-          "$1=[DIREDaksi]",
-        ),
+        jenisGalat: error instanceof Error ? error.name : "GalatInternal",
       },
       "Galat teknis internal tertangkap pada batas HTTP.",
     );

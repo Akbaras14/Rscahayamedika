@@ -52,6 +52,22 @@ export class DeliveryService {
     this.kaitan = kaitan;
   }
 
+  private antrianMutasi: Promise<void> = Promise.resolve();
+  private async mutasi<T>(aksi: (service: DeliveryService) => Promise<T>): Promise<T> {
+    let selesai!: () => void;
+    const sebelumnya = this.antrianMutasi;
+    this.antrianMutasi = new Promise<void>((resolve) => { selesai = resolve; });
+    await sebelumnya;
+    try { return this.repository.transaksi ? await this.repository.transaksi((repo) => aksi(new DeliveryService(repo, this.kaitan))) : await aksi(this); }
+    finally { selesai(); }
+  }
+  public buatTroliDistribusi(pengguna: ProfilSesiPengguna, input: unknown) { return this.mutasi((service) => service.buatTroliDistribusiDalamTransaksi(pengguna, input)); }
+  public berangkatkanTroli(pengguna: ProfilSesiPengguna, id: string) { return this.mutasi((service) => service.berangkatkanTroliDalamTransaksi(pengguna, id)); }
+  public kembalikanTroli(pengguna: ProfilSesiPengguna, id: string) { return this.mutasi((service) => service.kembalikanTroliDalamTransaksi(pengguna, id)); }
+  public verifikasiDanSerahkanPorsi(pengguna: ProfilSesiPengguna, id: string, input: unknown) { return this.mutasi((service) => service.verifikasiDanSerahkanPorsiDalamTransaksi(pengguna, id, input)); }
+  public tahanPorsiDistribusi(pengguna: ProfilSesiPengguna, id: string, input: unknown) { return this.mutasi((service) => service.tahanPorsiDistribusiDalamTransaksi(pengguna, id, input)); }
+  public buatLaporanInsiden(pengguna: ProfilSesiPengguna, input: unknown) { return this.mutasi((service) => service.buatLaporanInsidenDalamTransaksi(pengguna, input)); }
+
   /**
    * Validasi otorisasi peran Petugas Distribusi dan penugasan bangsal (AB-032).
    */
@@ -113,7 +129,7 @@ export class DeliveryService {
   /**
    * Membuat troli pengantaran baru ke suatu bangsal.
    */
-  public async buatTroliDistribusi(
+  private async buatTroliDistribusiDalamTransaksi(
     pengguna: ProfilSesiPengguna,
     input: unknown,
   ): Promise<ItemTroliDistribusiDto> {
@@ -170,7 +186,7 @@ export class DeliveryService {
   /**
    * Memberangkatkan troli pengantaran menuju bangsal.
    */
-  public async berangkatkanTroli(
+  private async berangkatkanTroliDalamTransaksi(
     pengguna: ProfilSesiPengguna,
     troliId: string,
   ): Promise<ItemTroliDistribusiDto> {
@@ -204,7 +220,7 @@ export class DeliveryService {
   /**
    * Menyelesaikan rute pengantaran troli dan mengembalikannya ke dapur gizi.
    */
-  public async kembalikanTroli(
+  private async kembalikanTroliDalamTransaksi(
     pengguna: ProfilSesiPengguna,
     troliId: string,
   ): Promise<ItemTroliDistribusiDto> {
@@ -248,7 +264,7 @@ export class DeliveryService {
    * Verifikasi dua identitas pasien (AB-020) & pemeriksaan diet terkini (AB-021),
    * dilanjutkan dengan penyerahan makanan ke pasien/keluarga (AB-023).
    */
-  public async verifikasiDanSerahkanPorsi(
+  private async verifikasiDanSerahkanPorsiDalamTransaksi(
     pengguna: ProfilSesiPengguna,
     porsiId: string,
     input: unknown,
@@ -303,6 +319,7 @@ export class DeliveryService {
       });
     }
 
+    if (!["menunggu_pengiriman", "dalam_troli"].includes(porsi.statusSerah)) throw new AppError({ kode: KODE_GALAT.PENAHANAN_KESELAMATAN, statusHttp: 422, pesanPengguna: "Porsi yang dibatalkan atau gagal diserahkan tidak boleh diserahkan kembali." });
     await this.kaitan.periksaPenyerahan?.(porsi);
 
     // AB-020: Verifikasi sedikitnya dua pengenal pasien
@@ -415,7 +432,7 @@ export class DeliveryService {
   /**
    * Menahan porsi makanan saat pengantaran karena perubahan klinis atau instruksi medis (AB-022, AB-030).
    */
-  public async tahanPorsiDistribusi(
+  private async tahanPorsiDistribusiDalamTransaksi(
     pengguna: ProfilSesiPengguna,
     porsiId: string,
     input: unknown,
@@ -487,7 +504,7 @@ export class DeliveryService {
   /**
    * Melaporkan insiden pengantaran makanan (AB-030).
    */
-  public async buatLaporanInsiden(
+  private async buatLaporanInsidenDalamTransaksi(
     pengguna: ProfilSesiPengguna,
     input: unknown,
   ): Promise<ItemLaporanInsidenDto> {

@@ -72,6 +72,7 @@ export function NursingWorkspace() {
 
   const [tabAktif, setTabAktif] = useState<TabPerawat>("pasien");
   const [kataKunciCari, setKataKunciCari] = useState("");
+  const [halaman, setHalaman] = useState(1);
   const [daftarPasien, setDaftarPasien] = useState<ItemPasienBangsalPerawatDto[]>([]);
   const [riwayatObservasi, setRiwayatObservasi] = useState<ItemObservasiAsupanDto[]>([]);
   const [memuatData, setMemuatData] = useState(false);
@@ -374,6 +375,8 @@ export function NursingWorkspace() {
       p.jenisDiet.toLowerCase().includes(k)
     );
   });
+  const totalHalaman = Math.max(1, Math.ceil(daftarPasienTersaring.length / 10));
+  const halamanAktif = Math.min(halaman, totalHalaman);
 
   const kolomPasien: readonly DefinisiKolomTabel<ItemPasienBangsalPerawatDto>[] = [
     {
@@ -684,15 +687,15 @@ export function NursingWorkspace() {
               judulTabel="Daftar Pasien Bangsal Binaan"
               deskripsiTabel={`Menampilkan seluruh pasien rawat inap aktif di ${bangsalAktifNama}`}
               kolom={kolomPasien}
-              data={daftarPasienTersaring}
+              data={daftarPasienTersaring.slice((halamanAktif - 1) * 10, halamanAktif * 10)}
               ambilKunciBaris={(p) => p.episodeId}
               kataKunciCari={kataKunciCari}
-              onUbahKataKunciCari={setKataKunciCari}
+              onUbahKataKunciCari={(nilai) => { setKataKunciCari(nilai); setHalaman(1); }}
               placeholderCari="Cari nama pasien, No RM, Bed, Diet..."
-              halamanSaatIni={1}
-              totalHalaman={1}
+              halamanSaatIni={halamanAktif}
+              totalHalaman={totalHalaman}
               totalData={daftarPasienTersaring.length}
-              onUbahHalaman={() => {}}
+              onUbahHalaman={setHalaman}
               sedangMemuat={memuatData}
               judulKosong="Tidak ada pasien aktif"
               deskripsiKosong="Belum ada pasien yang dialokasikan di bangsal ini atau filter pencarian tidak cocok."

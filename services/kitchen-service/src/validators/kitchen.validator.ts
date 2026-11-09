@@ -31,12 +31,13 @@ export const skemaInputBatchProduksi = z.object({
       z.object({
         bahanId: z.string().min(1, "ID bahan baku wajib diisi."),
         namaBahan: z.string().min(1, "Nama bahan wajib diisi."),
-        nomorLot: z.string().min(1, "Nomor lot bahan gudang wajib dicatat (AB-018)."),
+        nomorLot: z.string().trim().min(1, "Nomor lot bahan gudang wajib dicatat (AB-018)."),
         jumlahDigunakan: z.number().positive("Jumlah bahan yang digunakan harus > 0."),
         satuan: z.string().min(1, "Satuan bahan wajib diisi."),
       }),
     )
-    .min(1, "Paling sedikit harus mencatat 1 lot bahan baku yang digunakan untuk ketertelusuran (AB-018)."),
+    .min(1, "Paling sedikit harus mencatat 1 lot bahan baku yang digunakan untuk ketertelusuran (AB-018).")
+    .refine((items) => new Set(items.map((item) => item.nomorLot.toLowerCase())).size === items.length, "Nomor lot tidak boleh berulang dalam satu batch."),
 });
 
 export const skemaInputCatatCcpSuhu = z.object({

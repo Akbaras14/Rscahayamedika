@@ -17,12 +17,12 @@ declare global {
  */
 export function ambilGatewayAppBff(): Promise<FastifyInstance> {
   if (!globalThis.__hpnmsGatewayAppPromise) {
-    globalThis.__hpnmsGatewayAppPromise = bangunGatewayMySql().then(
-      (res) => res.app,
-    ).catch((error: unknown) => {
-      globalThis.__hpnmsGatewayAppPromise = undefined;
-      throw error;
-    });
+    globalThis.__hpnmsGatewayAppPromise = bangunGatewayMySql()
+      .then((res) => res.app)
+      .catch((error: unknown) => {
+        globalThis.__hpnmsGatewayAppPromise = undefined;
+        throw error;
+      });
   }
   return globalThis.__hpnmsGatewayAppPromise;
 }

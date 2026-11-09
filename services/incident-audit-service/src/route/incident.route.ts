@@ -126,6 +126,14 @@ export async function daftarkanRuteIncident(
     },
   );
 
+  app.post("/v1/incidents/reports/:id/actions/:actionId/verify", { preHandler: [wajibAutentikasi] }, async (request) => {
+    const profil = ambilProfil(request);
+    const { id, actionId } = request.params as { id: string; actionId: string };
+    const hasil = await deps.incidentService.verifikasiTindakanKoreksi(profil, id, actionId, request.body);
+    await deps.identityService.catatAudit({ aktorPenggunaId: profil.id, aktorPeran: profil.peran, tindakan: "VERIFIKASI_TINDAKAN_KOREKSI", objekTipe: "tindakan_koreksi", objekId: actionId, statusHasil: "berhasil", alasan: "Penyelesaian tindakan koreksi diverifikasi", correlationId: request.correlationId, metadata: {} });
+    return buatResponsSukses(request, hasil);
+  });
+
   // 7. Penutupan resmi insiden secara sah (Closed Loop, AB-029, AB-030)
   app.post(
     "/v1/incidents/reports/:id/close",

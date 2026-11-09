@@ -33,6 +33,8 @@ export class AlurGiziService {
     const diet = await this.repo.clinical.ambilInstruksiDietAktif(menu.pasienId);
     if (!episode || episode.statusPerawatan !== "aktif" || episode.pasienId !== menu.pasienId) tahan("Episode perawatan tidak aktif. Pesanan makanan dihentikan.");
     if (!diet || diet.id !== menu.instruksiDietId || diet.statusInstruksi !== "aktif") tahan("Instruksi diet berubah atau belum sah. Tinjau kembali menu individual.");
+    const sekarang = Date.now();
+    if (Date.parse(diet.berlakuSejak) > sekarang || (diet.berlakuHingga && Date.parse(diet.berlakuHingga) <= sekarang)) tahan("Instruksi diet belum berlaku atau telah berakhir.");
     if (diet.statusPuasaNpo || diet.rutePemberian !== "oral") tahan("Instruksi melarang pemberian makanan melalui mulut.");
     if (menu.bentukMakanan !== diet.bentukMakanan || menu.statusKesesuaian !== "sesuai") tahan("Menu tidak sesuai tekstur atau pembatasan pasien.");
     const resep = await this.repo.clinical.ambilMenuResepBerdasarkanId(menu.menuId);
@@ -124,6 +126,14 @@ export class AlurGiziService {
     const pesanan = menus.filter((m) => m.menuId === input.resepId && m.jadwalMakan === input.sesiMakan);
     for (const menu of pesanan) await this.periksaMenu(menu);
     if (!pesanan.length || input.jumlahPorsiTarget > pesanan.reduce((n, m) => n + m.porsi, 0)) tahan("Jumlah produksi melebihi pesanan individual sah untuk resep ini.");
+    const batches = await this.repo.kitchen.ambilDaftarBatchProduksi();
+    const sudahDirencanakan = batches.filter((b) => b.resepId === input.resepId && b.sesiMakan === input.sesiMakan && b.status !== "gagal_qc");
+    let totalTarget = input.jumlahPorsiTarget;
+    for (const batch of sudahDirencanakan) {
+      const plan = await this.repo.kitchen.ambilRencanaProduksiBerdasarkanId(batch.rencanaProduksiId);
+      if (plan?.tanggalPelayanan === rencana.tanggalPelayanan) totalTarget += batch.jumlahPorsiTarget;
+    }
+    if (totalTarget > pesanan.reduce((n, m) => n + m.porsi, 0)) tahan("Akumulasi batch melebihi pesanan individual sah pada tanggal dan sesi ini.");
     const resep = await this.repo.clinical.ambilMenuResepBerdasarkanId(input.resepId);
     if (!resep) tahan("Resep produksi tidak ditemukan.");
     for (const bahan of resep.komposisiBahan) {

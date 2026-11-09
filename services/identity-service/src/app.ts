@@ -1,3 +1,5 @@
+import { AppError } from "./model/errors.ts";
+import { KODE_GALAT } from "../../../packages/shared-types/src/index.ts";
 /**
  * @fileoverview Pabrik aplikasi (app factory) Fastify untuk Identity Service.
  * Mengonfigurasi Pino structured logging dengan redaksi data sensitif,
@@ -70,8 +72,14 @@ export async function bangunAplikasiIdentity(
     },
   });
 
+  const asalDiizinkan = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3100", "http://127.0.0.1:3100"];
+  app.addHook("onRequest", async (request) => {
+    const origin = request.headers.origin;
+    const asalSendiri = `${request.protocol}://${request.headers.host}`;
+    if (origin && origin !== asalSendiri && !asalDiizinkan.includes(origin) && !["GET", "HEAD", "OPTIONS"].includes(request.method)) throw new AppError({ kode: KODE_GALAT.AKSES_DITOLAK, statusHttp: 403, pesanPengguna: "Asal permintaan tidak diizinkan." });
+  });
   await app.register(fastifyCors, {
-    origin: true,
+    origin: asalDiizinkan,
     credentials: true,
   });
 

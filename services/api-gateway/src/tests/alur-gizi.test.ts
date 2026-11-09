@@ -90,6 +90,7 @@ test("diet awal sampai konsumsi: idempotensi, stok aktual, QC, dua identitas, em
     assert.equal((await inventory.ambilBahanBerdasarkanId("bhn-001"))!.stokFisik, Number((stokAwal - 0.1).toFixed(2)));
     const lot = keluar.daftarItem[0].lotDialokasikan[0];
     const batch = await sukses("petugas_dapur", "POST", "/v1/kitchen/batches", { rencanaProduksiId: plan.id, resepId: dibuat.id, namaMasakan: resep.namaMenu, sesiMakan: "siang", jumlahPorsiTarget: 1, chefPenanggungJawab: "Petugas Uji", lotBahanDigunakan: [{ bahanId: "bhn-001", namaBahan: "Beras", nomorLot: lot.nomorLot, jumlahDigunakan: 0.1, satuan: "kg" }] });
+    assert.equal((await request("petugas_dapur", "POST", "/v1/kitchen/batches", { rencanaProduksiId: plan.id, resepId: dibuat.id, namaMasakan: resep.namaMenu, sesiMakan: "siang", jumlahPorsiTarget: 1, chefPenanggungJawab: "Petugas Uji", lotBahanDigunakan: [{ bahanId: "bhn-001", namaBahan: "Beras", nomorLot: lot.nomorLot, jumlahDigunakan: 0.1, satuan: "kg" }] })).statusCode, 422, "Akumulasi batch tidak boleh melebihi pesanan");
     const labelId = "lbl-" + pesanan.id;
     assert.equal((await request("petugas_dapur", "POST", "/v1/kitchen/portion-labels/" + labelId + "/ready", { batchProduksiId: batch.id })).statusCode, 422);
     await sukses("petugas_dapur", "POST", "/v1/kitchen/batches/" + batch.id + "/ccp-temp", { suhuMasakCcpCelsius: 85, jumlahPorsiRealisasi: 1 });
@@ -129,4 +130,16 @@ test("navigasi final memakai halaman peran tanpa konsol fondasi", () => {
     assert.ok(saringNavigasiBerdasarkanIzin(MATRIKS_PERAN_MASTER[peran].izinDefault).some((item) => item.href === rute));
   }
   assert.ok(KATALOG_NAVIGASI_SISTEM.every((item) => item.href !== "/" && !/tahap|fondasi/i.test(item.label + item.href)));
+});
+
+
+test("instruksi diet yang belum berlaku atau telah kedaluwarsa menahan pesanan", async () => {
+  const clinical = new InMemoryClinicalNutritionRepository();
+  const alur = new AlurGiziService({ clinical, kitchen: new InMemoryKitchenRepository(), inventory: new InMemoryInventoryRepository(), delivery: new InMemoryDeliveryRepository(), patient: new InMemoryPatientRepository(), inpatient: new InMemoryInpatientRepository() });
+  const diet = SEED_INSTRUKSI_DIET_SINTETIS[0];
+  const menu = { ...SEED_RENCANA_MENU_INDIVIDUAL[0], episodeId: "ep-sintetis-002", pasienId: diet.pasienId, instruksiDietId: diet.id };
+  clinical.ambilInstruksiDietAktif = async () => ({ ...diet, berlakuSejak: "2099-01-01T00:00:00.000Z" });
+  await assert.rejects(alur.periksaMenu(menu), { statusHttp: 422 });
+  clinical.ambilInstruksiDietAktif = async () => ({ ...diet, berlakuSejak: "2020-01-01T00:00:00.000Z", berlakuHingga: "2020-01-02T00:00:00.000Z" });
+  await assert.rejects(alur.periksaMenu(menu), { statusHttp: 422 });
 });

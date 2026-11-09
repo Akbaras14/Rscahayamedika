@@ -389,7 +389,7 @@ export function KitchenWorkspace() {
       const res = await fetch(`/api/v1/kitchen/portion-labels/${label.id}/ready`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batchProduksiId: batchLolos.id, suhuKemasanCelsius: 63.0 }),
+        body: JSON.stringify({ batchProduksiId: batchLolos.id }),
       });
       const json = (await res.json()) as ResponsApi<ItemLabelPorsiPasienDto>;
       if (!res.ok || !json.sukses) {

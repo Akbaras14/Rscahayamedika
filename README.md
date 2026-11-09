@@ -2,6 +2,8 @@
 
 Aplikasi lokal berdasarkan [BRD versi 4.0](agent/brd.md), dengan ruang kerja untuk 10 peran. UI dan API berjalan dalam satu proses Next.js; data tersimpan di tujuh skema database MySQL/MariaDB.
 
+Laporan temuan, perbaikan, dan bukti pemeriksaan tersedia pada [Audit final lokal](docs/AUDIT_FINAL.md).
+
 ## Menjalankan di komputer ini
 
 Kebutuhan: Node.js 22+ dan layanan database MySQL/MariaDB lokal. Pemeriksaan koneksi tidak membatasi nomor versi server.
@@ -12,14 +14,16 @@ Pastikan layanan database port 3307 aktif, lalu jalankan:
 
     npm run db:check
     npm run db:migrate
-    npm run dev
+    npm run build
+    npm start
 
 Buka **http://127.0.0.1:3100**. Server hanya mendengarkan alamat loopback komputer lokal.
 
-Untuk menjalankan hasil build secara lokal:
+Untuk memakai alamat http://localhost:3000, jalankan hasil build pada port 3000:
 
-    npm run build
-    npm start
+    npm start -- --port 3000
+
+Gunakan satu terminal server untuk alamat yang dipilih. Perintah npm run dev hanya untuk mengedit kode; Fast Refresh dapat memuat ulang halaman ketika berkas berubah. Penggunaan normal memakai npm start.
 
 ## Menyiapkan di komputer lain
 
@@ -27,7 +31,7 @@ Untuk menjalankan hasil build secara lokal:
 2. Salin .env.example menjadi .env.
 3. Isi koneksi database lokal, rahasia sesi acak minimal 32 karakter, dan HPNMS_SEED_PASSWORD unik untuk membuat akun serta data sintetis awal.
 4. Akun database perlu hak membuat dan memigrasikan tujuh skema yang tercantum di .env.
-5. Jalankan npm run db:check, npm run db:migrate, lalu npm run dev.
+5. Jalankan npm run db:check, npm run db:migrate, npm run build, lalu npm start.
 
 Database port 3307 dikelola melalui layanan database yang sudah terpasang di komputer. Perintah local:database hanya opsional untuk instance MySQL terpisah dengan datadir yang sudah diinisialisasi; konfigurasi tersebut tidak dipakai pada komputer ini.
 

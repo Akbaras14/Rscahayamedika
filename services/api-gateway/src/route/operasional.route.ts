@@ -16,7 +16,7 @@ const skemaResep = z.object({
   jenisDietTerkait: z.string().min(2).max(64),
   energiKkal: z.number().int().nonnegative().max(10000),
   proteinGram: z.number().nonnegative().max(1000), lemakGram: z.number().nonnegative().max(1000), karbohidratGram: z.number().nonnegative().max(1000),
-  komposisiBahan: z.array(z.object({ kodeBahan: z.string().min(1), namaBahan: z.string().min(1), jumlah: z.number().positive().max(100000), satuan: z.string().min(1).max(16) })).min(1).max(100),
+  komposisiBahan: z.array(z.object({ kodeBahan: z.string().min(1), namaBahan: z.string().min(1), jumlah: z.number().positive().max(100000), satuan: z.string().min(1).max(16) })).min(1).max(100).refine((items) => new Set(items.map((item) => item.kodeBahan.trim().toLowerCase())).size === items.length, "Bahan resep tidak boleh berulang."),
   alergen: z.array(z.string().trim().min(1).max(80)).max(40),
 });
 const skemaAwal = z.object({ episodeId: z.string().min(1), menuId: z.string().min(1), tanggalPelayanan: tanggal, jadwalMakan: z.enum(JADWAL_MAKAN_MENU) });
@@ -41,10 +41,11 @@ export async function daftarkanRuteOperasional(app: FastifyInstance, identity: A
   app.get("/v1/operasional/episodes", { preHandler: [auth] }, async (request) => {
     const user = profil(request, ["dokter", "perawat", "ahli_gizi", "kepala_instalasi_gizi"]);
     const episodes = (await repo.inpatient.ambilSemuaEpisode()).filter((e) => user.peran === "kepala_instalasi_gizi" || user.daftarBangsalId.includes(e.bangsalId));
-    const items = await Promise.all(episodes.map(async (e) => {
+    const items = [];
+    for (const e of episodes) {
       const pasien = await repo.patient.cariPasienBerdasarkanId(e.pasienId);
-      return { id: e.id, nomorEpisode: e.nomorEpisode, namaPasien: pasien?.namaLengkap ?? "-", nomorRm: pasien?.nomorRekamMedis ?? "-", status: e.statusPerawatan };
-    }));
+      items.push({ id: e.id, nomorEpisode: e.nomorEpisode, namaPasien: pasien?.namaLengkap ?? "-", nomorRm: pasien?.nomorRekamMedis ?? "-", status: e.statusPerawatan });
+    }
     return buatResponsSukses(request, { items });
   });
   app.get("/v1/operasional/recipes", { preHandler: [auth] }, async (request) => {

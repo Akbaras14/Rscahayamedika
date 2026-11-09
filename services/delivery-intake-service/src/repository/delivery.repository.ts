@@ -4,7 +4,7 @@ import { parameterMysql, waktuMysql } from "../../../../packages/database/src/my
  * Menyediakan implementasi InMemory (dengan seed) dan implementasi MySQL terparameterisasi.
  */
 
-import type { Pool, RowDataPacket } from "mysql2/promise";
+import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import type {
   JenisInsidenDistribusi,
   RingkasanDistribusiOverviewDto,
@@ -28,6 +28,7 @@ import type {
 export type NilaiParamSql = string | number | boolean | null;
 
 export interface DeliveryRepository {
+  transaksi?<T>(kerja: (repo: DeliveryRepository) => Promise<T>): Promise<T>;
   // Troli Distribusi
   hitungNomorTroliBerikutnya(tanggal: string): Promise<string>;
   simpanTroli(troli: TroliDistribusiEntitas): Promise<TroliDistribusiEntitas>;
@@ -249,10 +250,24 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
 }
 
 export class MySqlDeliveryRepository implements DeliveryRepository {
-  private readonly pool: Pool;
+  private readonly pool: Pool | PoolConnection;
 
-  public constructor(pool: Pool) {
+  public constructor(pool: Pool | PoolConnection) {
     this.pool = pool;
+  }
+
+  public async transaksi<T>(kerja: (repo: DeliveryRepository) => Promise<T>): Promise<T> {
+    if (!("getConnection" in this.pool)) return kerja(this);
+    const conn = await this.pool.getConnection();
+    try {
+      const [rows] = await conn.query<RowDataPacket[]>("SELECT GET_LOCK(CONCAT(DATABASE(), ':delivery'), 10) AS acquired");
+      if (Number(rows[0]?.acquired) !== 1) throw new Error("Operasi sedang diproses. Silakan coba kembali.");
+      await conn.beginTransaction();
+      const result = await kerja(new MySqlDeliveryRepository(conn));
+      await conn.commit();
+      return result;
+    } catch (error) { await conn.rollback().catch(() => undefined); throw error; }
+    finally { await conn.query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), ':delivery'))").catch(() => undefined); conn.release(); }
   }
 
   public async hitungNomorTroliBerikutnya(tanggal: string): Promise<string> {

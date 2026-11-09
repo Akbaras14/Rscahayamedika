@@ -39,6 +39,7 @@ import {
   skemaPenutupanInsiden,
   skemaRekonsiliasiDowntime,
   skemaTindakanKoreksi,
+  skemaVerifikasiTindakan,
 } from "../validators/incident.validator.ts";
 
 export class IncidentAuditService {
@@ -60,7 +61,7 @@ export class IncidentAuditService {
       throw new AppError({
         kode: KODE_GALAT.AKSES_DITOLAK,
         statusHttp: 403,
-        pesanPengguna: "Akses Terbatas: Khusus Kepala Instalasi Gizi (Tahap 10).",
+        pesanPengguna: "Akses Terbatas: Khusus Kepala Instalasi Gizi.",
         pesanInternal: `Akses ditolak untuk peran ${pengguna.peran} (${pengguna.id}) pada operasi '${aksiDeskripsi}'. (AB-032)`,
       });
     }
@@ -349,6 +350,19 @@ export class IncidentAuditService {
   /**
    * Menutup insiden secara resmi dengan penegakan closed-loop resolution (AB-029).
    */
+  public async verifikasiTindakanKoreksi(pengguna: ProfilSesiPengguna, insidenId: string, tindakanId: string, input: unknown): Promise<ItemTindakanKoreksiDto> {
+    this.validasiIzinAksesKepala(pengguna, "kepala_instalasi:insiden:kelola", "Verifikasi penyelesaian tindakan koreksi");
+    const parsed = skemaVerifikasiTindakan.safeParse(input);
+    if (!parsed.success) throw new AppError({ kode: KODE_GALAT.VALIDASI_GAGAL, statusHttp: 400, pesanPengguna: parsed.error.issues[0]?.message ?? "Bukti penyelesaian tidak valid." });
+    const insiden = await this.repository.ambilInsidenBerdasarkanId(insidenId);
+    const tindakan = (await this.repository.ambilDaftarTindakanBerdasarkanInsidenId(insidenId)).find((item) => item.id === tindakanId);
+    if (!insiden || !tindakan) throw new AppError({ kode: KODE_GALAT.DATA_TIDAK_DITEMUKAN, statusHttp: 404, pesanPengguna: "Tindakan koreksi pada insiden ini tidak ditemukan." });
+    if (insiden.statusInsiden === "selesai_ditutup" || tindakan.statusTindakan === "selesai_efektif") throw new AppError({ kode: KODE_GALAT.KONFLIK_BISNIS, statusHttp: 409, pesanPengguna: "Tindakan yang sudah terverifikasi atau insiden tertutup tidak dapat diubah." });
+    const now = new Date();
+    const saved = await this.repository.perbaruiTindakanKoreksi(tindakanId, { statusTindakan: "selesai_efektif", tanggalRealisasi: now.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }), buktiPenyelesaian: parsed.data.buktiPenyelesaian + "\nDiverifikasi oleh " + pengguna.namaLengkap + " (" + pengguna.id + ") pada " + now.toISOString() });
+    return this.petakanTindakanDto(saved);
+  }
+
   public async tutupResmiInsiden(
     pengguna: ProfilSesiPengguna,
     insidenId: string,
@@ -416,6 +430,7 @@ export class IncidentAuditService {
       });
     }
 
+    if (daftarTindakan.some((item) => item.statusTindakan !== "selesai_efektif" || !item.tanggalRealisasi || !item.buktiPenyelesaian?.trim())) throw new AppError({ kode: KODE_GALAT.PENAHANAN_KESELAMATAN, statusHttp: 422, pesanPengguna: "Seluruh tindakan koreksi harus selesai dan diverifikasi dengan bukti sebelum insiden ditutup." });
     const waktuSekarang = new Date().toISOString();
     const terupdate = await this.repository.perbaruiInsiden(insiden.id, {
       statusInsiden: "selesai_ditutup",

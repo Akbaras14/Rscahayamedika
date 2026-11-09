@@ -73,6 +73,7 @@ export function DietitianWorkspace() {
 
   const [tabAktif, setTabAktif] = useState<TabDietisien>("antrean");
   const [kataKunciCari, setKataKunciCari] = useState("");
+  const [halaman, setHalaman] = useState(1);
   const [daftarPasien, setDaftarPasien] = useState<ItemPasienDietisienDto[]>([]);
   const [riwayatAdime, setRiwayatAdime] = useState<ItemAsuhanGiziAdimeDto[]>([]);
   const [katalogResep, setKatalogResep] = useState<ItemKatalogMenuResepDto[]>([]);
@@ -113,7 +114,7 @@ export function DietitianWorkspace() {
   const [modalMenuBuka, setModalMenuBuka] = useState(false);
   const [menuTerpilihId, setMenuTerpilihId] = useState("");
   const [jadwalMakanTerpilih, setJadwalMakanTerpilih] = useState<JadwalMakanMenu>("pagi");
-  const [tanggalPelayananMenu, setTanggalPelayananMenu] = useState("2026-11-09");
+  const [tanggalPelayananMenu, setTanggalPelayananMenu] = useState("");
   const [porsiMenu, setPorsiMenu] = useState<number>(1.0);
   const [catatanKhususMenu, setCatatanKhususMenu] = useState("");
   const [sedangSimpanMenu, setSedangSimpanMenu] = useState(false);
@@ -433,6 +434,8 @@ export function DietitianWorkspace() {
       p.diagnosisUtama.toLowerCase().includes(q);
     return cocokBangsal && cocokRisiko && cocokCari;
   });
+  const totalHalaman = Math.max(1, Math.ceil(pasienTersaring.length / 10));
+  const halamanAktif = Math.min(halaman, totalHalaman);
 
   const bukaModalAdime = (pasien: ItemPasienDietisienDto) => {
     setPasienTerpilih(pasien);
@@ -454,6 +457,7 @@ export function DietitianWorkspace() {
 
   const bukaModalMenu = (pasien: ItemPasienDietisienDto) => {
     setPasienTerpilih(pasien);
+    setTanggalPelayananMenu(new Date().toLocaleDateString("en-CA"));
     setModalMenuBuka(true);
   };
 
@@ -842,15 +846,15 @@ export function DietitianWorkspace() {
               judulTabel="Daftar Pasien Konsultasi Gizi"
               deskripsiTabel="Daftar pasien rawat inap yang membutuhkan konsultasi, asuhan ADIME, atau penyesuaian menu individual"
               kolom={kolomPasien}
-              data={pasienTersaring}
+              data={pasienTersaring.slice((halamanAktif - 1) * 10, halamanAktif * 10)}
               ambilKunciBaris={(item: ItemPasienDietisienDto) => item.episodeId}
               kataKunciCari={kataKunciCari}
-              onUbahKataKunciCari={setKataKunciCari}
+              onUbahKataKunciCari={(nilai) => { setKataKunciCari(nilai); setHalaman(1); }}
               placeholderCari="Cari nama pasien, No RM, Bed, atau Diagnosis..."
-              halamanSaatIni={1}
-              totalHalaman={1}
+              halamanSaatIni={halamanAktif}
+              totalHalaman={totalHalaman}
               totalData={pasienTersaring.length}
-              onUbahHalaman={() => {}}
+              onUbahHalaman={setHalaman}
               sedangMemuat={memuatData}
               judulKosong="Tidak Ada Pasien"
               deskripsiKosong="Tidak ada pasien rawat inap yang cocok dengan filter pencarian."
@@ -859,7 +863,7 @@ export function DietitianWorkspace() {
                   <Filter className="w-3.5 h-3.5 text-slate-500" />
                   <select
                     value={filterBangsal}
-                    onChange={(e) => setFilterBangsal(e.target.value)}
+                    onChange={(e) => { setFilterBangsal(e.target.value); setHalaman(1); }}
                     className="h-8 px-2 rounded border border-slate-300 text-xs bg-white"
                   >
                     <option value="SEMUA">Semua Bangsal</option>
@@ -869,7 +873,7 @@ export function DietitianWorkspace() {
                   </select>
                   <select
                     value={filterRisiko}
-                    onChange={(e) => setFilterRisiko(e.target.value)}
+                    onChange={(e) => { setFilterRisiko(e.target.value); setHalaman(1); }}
                     className="h-8 px-2 rounded border border-slate-300 text-xs bg-white"
                   >
                     <option value="SEMUA">Semua Risiko MST</option>

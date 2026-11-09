@@ -42,6 +42,10 @@ export const skemaTindakanKoreksi = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal target harus YYYY-MM-DD (AB-028)."),
 });
 
+export const skemaVerifikasiTindakan = z.object({
+  buktiPenyelesaian: z.string().trim().min(10, "Bukti penyelesaian minimal 10 karakter.").max(5000),
+});
+
 export const skemaPenutupanInsiden = z.object({
   catatanPenutupan: z
     .string()

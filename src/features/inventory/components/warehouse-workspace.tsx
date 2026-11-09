@@ -70,6 +70,7 @@ export function WarehouseWorkspace() {
 
   const [tabAktif, setTabAktif] = useState<TabGudang>("katalog");
   const [kataKunciCari, setKataKunciCari] = useState("");
+  const [halaman, setHalaman] = useState(1);
   const [memuatData, setMemuatData] = useState(false);
   const [pesanGalat, setPesanGalat] = useState<string | null>(null);
   const [pesanSukses, setPesanSukses] = useState<string | null>(null);
@@ -90,18 +91,19 @@ export function WarehouseWorkspace() {
   const [bahanTerpilihLot, setBahanTerpilihLot] = useState<string>("");
   const [pemasokInput, setPemasokInput] = useState<string>("");
   const [jumlahMasukInput, setJumlahMasukInput] = useState<number | "">("");
-  const [tanggalTerimaInput, setTanggalTerimaInput] = useState<string>("2026-11-09");
-  const [tanggalEdInput, setTanggalEdInput] = useState<string>("2026-12-09");
+  const [tanggalTerimaInput, setTanggalTerimaInput] = useState<string>("");
+  const [tanggalEdInput, setTanggalEdInput] = useState<string>("");
   const [statusMutuInput, setStatusMutuInput] = useState<StatusMutuPenerimaan>("layak_diterima");
   const [catatanMutuInput, setCatatanMutuInput] = useState<string>("");
   const [suhuCelsiusInput, setSuhuCelsiusInput] = useState<number | "">("");
   const [sedangSimpanLot, setSedangSimpanLot] = useState(false);
 
-  // Modal State: Buat Permintaan Dapur Sintetis
+  // Modal State: Buat Permintaan Bahan Dapur
   const [modalPermintaanBuka, setModalPermintaanBuka] = useState(false);
   const [unitPemintaInput, setUnitPemintaInput] = useState<string>("Dapur Pengolahan Utama");
   const [keteranganReqInput, setKeteranganReqInput] = useState<string>("");
   const [bahanReqTerpilih, setBahanReqTerpilih] = useState<string>("");
+  const [tanggalKebutuhanInput, setTanggalKebutuhanInput] = useState("");
   const [jumlahReqInput, setJumlahReqInput] = useState<number | "">("");
   const [sedangSimpanReq, setSedangSimpanReq] = useState(false);
 
@@ -276,7 +278,7 @@ export function WarehouseWorkspace() {
     }
   };
 
-  // Handler: Buat Permintaan Dapur Sintetis
+  // Handler: Buat Permintaan Bahan Dapur
   const tanganiBuatPermintaan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bahanReqTerpilih || !jumlahReqInput || Number(jumlahReqInput) <= 0) {
@@ -289,7 +291,7 @@ export function WarehouseWorkspace() {
 
     try {
       const payload = {
-        tanggalKebutuhan: "2026-11-10",
+        tanggalKebutuhan: tanggalKebutuhanInput,
         unitPeminta: unitPemintaInput,
         keterangan: keteranganReqInput || "Permintaan bahan rutin dapur",
         daftarItem: [{ bahanId: bahanReqTerpilih, jumlahDiminta: Number(jumlahReqInput) }],
@@ -451,6 +453,8 @@ export function WarehouseWorkspace() {
 
     return cocokTeks && cocokKategori && cocokStatus && cocokSuhu;
   });
+  const totalHalaman = Math.max(1, Math.ceil(bahanTersaring.length / 10));
+  const halamanAktif = Math.min(halaman, totalHalaman);
 
   // Metrik ringkasan
   const totalBahan = daftarBahan.length;
@@ -561,6 +565,7 @@ export function WarehouseWorkspace() {
             className="h-8 text-xs border-blue-300 hover:bg-blue-50 text-blue-800"
             onClick={() => {
               setBahanTerpilihLot(b.id);
+              setTanggalTerimaInput(new Date().toLocaleDateString("en-CA"));
               setModalLotBuka(true);
             }}
           >
@@ -648,7 +653,7 @@ export function WarehouseWorkspace() {
               <Button
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                onClick={() => setModalLotBuka(true)}
+                onClick={() => { setTanggalTerimaInput(new Date().toLocaleDateString("en-CA")); setModalLotBuka(true); }}
               >
                 <PackagePlus className="w-3.5 h-3.5 mr-1.5" />
                 Penerimaan Baru
@@ -660,7 +665,7 @@ export function WarehouseWorkspace() {
                 onClick={() => setModalPermintaanBuka(true)}
               >
                 <Utensils className="w-3.5 h-3.5 mr-1.5" />
-                Req Dapur Sintetis
+                Permintaan Bahan
               </Button>
             </div>
           </div>
@@ -771,15 +776,15 @@ export function WarehouseWorkspace() {
               judulTabel="Katalog Bahan Baku &amp; Status Ketersediaan"
               deskripsiTabel="Stok fisik, stok layak, alokasi dapur, dan batas stok minimum (safety stock)"
               kolom={kolomBahan}
-              data={bahanTersaring}
+              data={bahanTersaring.slice((halamanAktif - 1) * 10, halamanAktif * 10)}
               ambilKunciBaris={(b) => b.id}
               kataKunciCari={kataKunciCari}
-              onUbahKataKunciCari={setKataKunciCari}
+              onUbahKataKunciCari={(nilai) => { setKataKunciCari(nilai); setHalaman(1); }}
               placeholderCari="Cari nama bahan, kode, atau kategori..."
-              halamanSaatIni={1}
-              totalHalaman={1}
+              halamanSaatIni={halamanAktif}
+              totalHalaman={totalHalaman}
               totalData={bahanTersaring.length}
-              onUbahHalaman={() => {}}
+              onUbahHalaman={setHalaman}
               sedangMemuat={memuatData}
               judulKosong="Tidak Ada Bahan"
               deskripsiKosong="Tidak ada bahan baku yang cocok dengan filter pencarian."
@@ -788,7 +793,7 @@ export function WarehouseWorkspace() {
                   <Filter className="w-3.5 h-3.5 text-slate-500" />
                   <select
                     value={filterKategori}
-                    onChange={(e) => setFilterKategori(e.target.value)}
+                    onChange={(e) => { setFilterKategori(e.target.value); setHalaman(1); }}
                     className="h-8 px-2 rounded border border-slate-300 text-xs bg-white"
                   >
                     <option value="SEMUA">Semua Kategori</option>
@@ -802,7 +807,7 @@ export function WarehouseWorkspace() {
                   </select>
                   <select
                     value={filterStatusStok}
-                    onChange={(e) => setFilterStatusStok(e.target.value)}
+                    onChange={(e) => { setFilterStatusStok(e.target.value); setHalaman(1); }}
                     className="h-8 px-2 rounded border border-slate-300 text-xs bg-white"
                   >
                     <option value="SEMUA">Semua Status Stok</option>
@@ -812,7 +817,7 @@ export function WarehouseWorkspace() {
                   </select>
                   <select
                     value={filterSuhu}
-                    onChange={(e) => setFilterSuhu(e.target.value)}
+                    onChange={(e) => { setFilterSuhu(e.target.value); setHalaman(1); }}
                     className="h-8 px-2 rounded border border-slate-300 text-xs bg-white"
                   >
                     <option value="SEMUA">Semua Suhu</option>
@@ -1441,7 +1446,7 @@ export function WarehouseWorkspace() {
           </div>
         )}
 
-        {/* MODAL 4: Buat Permintaan Dapur Sintetis */}
+        {/* MODAL 4: Buat Permintaan Bahan Dapur */}
         {modalPermintaanBuka && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
@@ -1449,7 +1454,7 @@ export function WarehouseWorkspace() {
                 <div className="flex items-center gap-2">
                   <Utensils className="w-5 h-5 text-emerald-700" />
                   <h3 className="text-base font-bold text-slate-900">
-                    Pengajuan Permintaan Bahan Dapur Sintetis
+                    Pengajuan Permintaan Bahan Dapur
                   </h3>
                 </div>
                 <button
@@ -1462,6 +1467,10 @@ export function WarehouseWorkspace() {
               </div>
 
               <form onSubmit={tanganiBuatPermintaan} className="space-y-4 text-xs">
+                <div>
+                  <label htmlFor="tanggal-kebutuhan-bahan" className="block font-semibold text-slate-800 mb-1">Tanggal Kebutuhan *</label>
+                  <input id="tanggal-kebutuhan-bahan" type="date" value={tanggalKebutuhanInput} onChange={(e) => setTanggalKebutuhanInput(e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs" required />
+                </div>
                 <div>
                   <label className="block font-semibold text-slate-800 mb-1">
                     Unit Peminta *
@@ -1485,6 +1494,7 @@ export function WarehouseWorkspace() {
                     className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs bg-white"
                     required
                   >
+                    <option value="" disabled>Pilih bahan baku</option>
                     {daftarBahan.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.namaBahan} (Stok Bebas: {b.stokTersedia} {b.satuan})

@@ -64,6 +64,24 @@ export class KitchenService {
     this.kaitan = kaitan;
   }
 
+  private antrianMutasi: Promise<void> = Promise.resolve();
+  private async mutasi<T>(aksi: (service: KitchenService) => Promise<T>): Promise<T> {
+    let selesai!: () => void;
+    const sebelumnya = this.antrianMutasi;
+    this.antrianMutasi = new Promise<void>((resolve) => { selesai = resolve; });
+    await sebelumnya;
+    try { return this.repository.transaksi ? await this.repository.transaksi((repo) => aksi(new KitchenService(repo, this.kaitan))) : await aksi(this); }
+    finally { selesai(); }
+  }
+  public buatRencanaProduksi(input: InputRencanaProduksiBaru, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.buatRencanaProduksiDalamTransaksi(input, profil)); }
+  public setujuiRencanaProduksi(id: string, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.setujuiRencanaProduksiDalamTransaksi(id, profil)); }
+  public buatBatchProduksi(input: InputBatchProduksiBaru, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.buatBatchProduksiDalamTransaksi(input, profil)); }
+  public catatCcpSuhuMasak(id: string, input: InputCatatCcpSuhu, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.catatCcpSuhuMasakDalamTransaksi(id, input, profil)); }
+  public catatPemeriksaanMutu(input: InputPemeriksaanMutuBaru, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.catatPemeriksaanMutuDalamTransaksi(input, profil)); }
+  public siapkanPorsiDistribusi(id: string, input: InputCetakLabelPorsi, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.siapkanPorsiDistribusiDalamTransaksi(id, input, profil)); }
+  public tahanPorsiKarenaPerubahanKlinis(id: string, input: InputTahanPorsiKlinis, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.tahanPorsiKarenaPerubahanKlinisDalamTransaksi(id, input, profil)); }
+  public lepasPenahananPorsi(id: string, profil: ProfilSesiPengguna) { return this.mutasi((service) => service.lepasPenahananPorsiDalamTransaksi(id, profil)); }
+
   /**
    * Validasi otorisasi server-side khusus peran Petugas Dapur (AB-032).
    */
@@ -157,7 +175,7 @@ export class KitchenService {
   /**
    * Membuat rencana produksi H-1 baru beserta kalkulasi kebutuhan bahan baku (AB-012, AB-014).
    */
-  public async buatRencanaProduksi(
+  private async buatRencanaProduksiDalamTransaksi(
     inputMentah: InputRencanaProduksiBaru,
     profil: ProfilSesiPengguna,
   ): Promise<ItemRencanaProduksiDto> {
@@ -205,7 +223,7 @@ export class KitchenService {
   /**
    * Menyetujui rencana produksi H-1 secara resmi oleh penanggung jawab dapur (AB-012).
    */
-  public async setujuiRencanaProduksi(
+  private async setujuiRencanaProduksiDalamTransaksi(
     id: string,
     profil: ProfilSesiPengguna,
   ): Promise<ItemRencanaProduksiDto> {
@@ -256,7 +274,7 @@ export class KitchenService {
   /**
    * Mencatat batch memasak baru dengan penelusuran lot bahan baku gudang (AB-018).
    */
-  public async buatBatchProduksi(
+  private async buatBatchProduksiDalamTransaksi(
     inputMentah: InputBatchProduksiBaru,
     profil: ProfilSesiPengguna,
   ): Promise<ItemBatchProduksiDto> {
@@ -316,7 +334,7 @@ export class KitchenService {
    * Mencatat pencapaian suhu Critical Control Point (CCP) memasak (AB-019).
    * Standar keamanan pangan rumah sakit mensyaratkan suhu masak inti minimal 75 C.
    */
-  public async catatCcpSuhuMasak(
+  private async catatCcpSuhuMasakDalamTransaksi(
     batchId: string,
     inputMentah: InputCatatCcpSuhu,
     profil: ProfilSesiPengguna,
@@ -345,6 +363,8 @@ export class KitchenService {
 
     const suhu = input.suhuMasakCcpCelsius;
     const porsiRealisasi = input.jumlahPorsiRealisasi ?? batch.jumlahPorsiTarget;
+    if (porsiRealisasi > batch.jumlahPorsiTarget) throw new AppError({ kode: KODE_GALAT.PENAHANAN_KESELAMATAN, statusHttp: 422, pesanPengguna: "Hasil produksi melebihi target dan bahan yang dicatat. Koreksi batch terlebih dahulu." });
+    if (batch.status === "lolos_qc") throw new AppError({ kode: KODE_GALAT.KONFLIK_BISNIS, statusHttp: 409, pesanPengguna: "Batch yang telah lolos QC tidak dapat diubah tanpa pemeriksaan ulang." });
     const catatan = input.catatanKoki ?? batch.catatanKoki;
 
     const terbarui = await this.repository.perbaruiBatchProduksi(batchId, {
@@ -362,7 +382,7 @@ export class KitchenService {
   /**
    * Mencatat pemeriksaan mutu akhir organoleptik dan suhu saji sebelum distribusi (AB-019, AB-022).
    */
-  public async catatPemeriksaanMutu(
+  private async catatPemeriksaanMutuDalamTransaksi(
     inputMentah: InputPemeriksaanMutuBaru,
     profil: ProfilSesiPengguna,
   ): Promise<ItemPemeriksaanMutuProduksiDto> {
@@ -388,6 +408,7 @@ export class KitchenService {
       });
     }
 
+    if (input.statusMutu === "lolos_pemeriksaan" && (batch.suhuMasakCcpCelsius === null || batch.jumlahPorsiRealisasi <= 0 || !["selesai_masak", "lolos_qc", "gagal_qc"].includes(batch.status))) throw new AppError({ kode: KODE_GALAT.PENAHANAN_KESELAMATAN, statusHttp: 422, pesanPengguna: "Selesaikan pencatatan hasil masak dan pengukuran CCP sebelum meluluskan QC." });
     if (input.statusMutu === "lolos_pemeriksaan" && (input.ujiTekstur !== "sesuai" || input.ujiAroma !== "normal_segar" || input.ujiRasa !== "sesuai_standar" || input.ujiTampilanVisual !== "bersih_menarik")) {
       input.statusMutu = "ditahan_gagal_mutu";
     }
@@ -494,7 +515,7 @@ export class KitchenService {
    * Makanan yang gagal QC dilarang diporsikan atau disiapkan distribusi.
    * Makanan dengan status 'ditahan_perubahan_klinis' dilarang didistribusikan (AB-010, AB-013).
    */
-  public async siapkanPorsiDistribusi(
+  private async siapkanPorsiDistribusiDalamTransaksi(
     labelId: string,
     inputMentah: InputCetakLabelPorsi,
     profil: ProfilSesiPengguna,
@@ -520,6 +541,8 @@ export class KitchenService {
       });
     }
 
+    if (label.statusPorsi === "batal") throw new AppError({ kode: KODE_GALAT.PENAHANAN_KESELAMATAN, statusHttp: 422, pesanPengguna: "Label yang dibatalkan tidak dapat digunakan kembali." });
+    if (label.statusPorsi === "siap_distribusi" && label.batchProduksiId !== validasi.data.batchProduksiId) throw new AppError({ kode: KODE_GALAT.KONFLIK_BISNIS, statusHttp: 409, pesanPengguna: "Label yang telah diproses tidak dapat dipindahkan ke batch lain." });
     // AB-010 & AB-013: Makanan yang ditahan klinis TIDAK BOLEH didistribusikan!
     if (label.statusPorsi === "ditahan_perubahan_klinis") {
       throw new AppError({
@@ -554,13 +577,17 @@ export class KitchenService {
       throw new AppError({ kode: KODE_GALAT.PENAHANAN_KESELAMATAN, statusHttp: 422, pesanPengguna: "Batch wajib lolos pemeriksaan akhir sebelum dikemas." });
     }
     await this.kaitan.periksaPorsi?.(label, batch);
+    if (label.statusPorsi === "siap_distribusi") {
+      await this.kaitan.padaPorsiSiap?.(label);
+      return this.petakanLabelKeDto(label);
+    }
     const terbarui = await this.repository.perbaruiStatusLabelPorsi(
       labelId,
       "siap_distribusi",
       {
         batchProduksiId: batch.id,
         nomorBatch: batch.nomorBatch,
-        suhuKemasanCelsius: validasi.data.suhuKemasanCelsius ?? 62.0,
+        suhuKemasanCelsius: validasi.data.suhuKemasanCelsius ?? null,
       },
     );
 
@@ -571,7 +598,7 @@ export class KitchenService {
   /**
    * Menahan porsi makanan pasien akibat perubahan diet / alergi / puasa klinis (AB-010, AB-013).
    */
-  public async tahanPorsiKarenaPerubahanKlinis(
+  private async tahanPorsiKarenaPerubahanKlinisDalamTransaksi(
     labelId: string,
     inputMentah: InputTahanPorsiKlinis,
     profil: ProfilSesiPengguna,
@@ -611,7 +638,7 @@ export class KitchenService {
   /**
    * Melepas penahanan porsi setelah diet baru divalidasi aman (AB-013).
    */
-  public async lepasPenahananPorsi(
+  private async lepasPenahananPorsiDalamTransaksi(
     labelId: string,
     profil: ProfilSesiPengguna,
   ): Promise<ItemLabelPorsiPasienDto> {

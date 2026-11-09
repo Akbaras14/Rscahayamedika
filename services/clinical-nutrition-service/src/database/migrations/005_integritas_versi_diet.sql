@@ -1,0 +1,1 @@
+ALTER TABLE instruksi_diet DROP INDEX uq_instruksi_nomor, ADD UNIQUE KEY uq_instruksi_nomor_versi (nomor_instruksi, versi), ADD COLUMN pasien_diet_aktif VARCHAR(64) GENERATED ALWAYS AS (CASE WHEN status_instruksi = 'aktif' THEN pasien_id ELSE NULL END) STORED, ADD UNIQUE KEY uq_instruksi_pasien_aktif (pasien_diet_aktif);

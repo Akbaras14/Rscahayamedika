@@ -1,0 +1,2 @@
+ALTER TABLE penempatan_tempat_tidur ADD COLUMN tempat_tidur_aktif VARCHAR(64) GENERATED ALWAYS AS (CASE WHEN status_penempatan = 'aktif' THEN tempat_tidur_id ELSE NULL END) STORED, ADD UNIQUE KEY uq_penempatan_aktif (tempat_tidur_aktif);
+ALTER TABLE episode_rawat_inap ADD COLUMN pasien_aktif VARCHAR(64) GENERATED ALWAYS AS (CASE WHEN status_perawatan = 'aktif' THEN pasien_id ELSE NULL END) STORED, ADD UNIQUE KEY uq_episode_pasien_aktif (pasien_aktif);
